@@ -1,0 +1,17 @@
+[allowlist]
+  description = "Global Allowlist"
+
+  # Ignore based on any subset of the file path
+  paths = [
+    # Ignore example environment file (contains sample/placeholder credentials)
+    '''env\.example$''',
+
+    # Ignore all example certs
+    '''\/example.*\.pem$''',
+  ]
+
+  # Ignore based on any subset of the line
+  regexes = [
+    # Ignore lines with notsecret comment (explicitly marked as safe)
+    '''notsecret''',
+  ]
