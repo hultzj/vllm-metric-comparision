@@ -1,0 +1,68 @@
+# =============================================================================
+# Prometheus Configuration for vLLM vs TGI Benchmarking
+# =============================================================================
+
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+  external_labels:
+    monitor: 'inference-benchmark'
+
+# Alerting (optional - can be extended)
+alerting:
+  alertmanagers: []
+
+# Rule files (optional - can be extended)
+rule_files: []
+
+# Scrape configurations
+scrape_configs:
+  # -------------------------------------------------------------------------
+  # Prometheus self-monitoring
+  # -------------------------------------------------------------------------
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # -------------------------------------------------------------------------
+  # vLLM Metrics
+  # -------------------------------------------------------------------------
+  - job_name: 'vllm'
+    static_configs:
+      - targets: ['vllm:8000']
+        labels:
+          engine: 'vllm'
+          role: 'champion'
+    metrics_path: /metrics
+    scrape_interval: 5s
+
+  # -------------------------------------------------------------------------
+  # TGI Metrics
+  # -------------------------------------------------------------------------
+  - job_name: 'tgi'
+    static_configs:
+      - targets: ['tgi:80']
+        labels:
+          engine: 'tgi'
+          role: 'baseline'
+    metrics_path: /metrics
+    scrape_interval: 5s
+
+  # -------------------------------------------------------------------------
+  # Pushgateway (for benchmark results)
+  # -------------------------------------------------------------------------
+  - job_name: 'pushgateway'
+    honor_labels: true
+    static_configs:
+      - targets: ['pushgateway:9091']
+
+  # -------------------------------------------------------------------------
+  # NVIDIA DCGM Exporter (GPU metrics)
+  # -------------------------------------------------------------------------
+  - job_name: 'dcgm-exporter'
+    static_configs:
+      - targets: ['dcgm-exporter:9400']
+        labels:
+          gpu: 'L40S'
+

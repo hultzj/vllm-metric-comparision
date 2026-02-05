@@ -1,0 +1,51 @@
+{"prompt": "Explain the concept of machine learning to a complete beginner. Include examples of real-world applications.", "max_tokens": 256, "category": "explanation"}
+{"prompt": "Write a Python function that implements binary search on a sorted list. Include docstring and type hints.", "max_tokens": 384, "category": "coding"}
+{"prompt": "What are the key differences between REST and GraphQL APIs? When should you use each one?", "max_tokens": 512, "category": "technical"}
+{"prompt": "Summarize the main principles of the Agile software development methodology.", "max_tokens": 256, "category": "summary"}
+{"prompt": "Write a short story about a robot who discovers emotions for the first time.", "max_tokens": 768, "category": "creative"}
+{"prompt": "Explain how a CPU cache works and why it improves performance. Include L1, L2, and L3 cache levels.", "max_tokens": 384, "category": "technical"}
+{"prompt": "Create a SQL query that finds the top 10 customers by total order value in the last 30 days, joining customers, orders, and order_items tables.", "max_tokens": 256, "category": "coding"}
+{"prompt": "What is the difference between TCP and UDP protocols? Give examples of when each is preferred.", "max_tokens": 384, "category": "technical"}
+{"prompt": "Write a haiku about programming.", "max_tokens": 64, "category": "creative"}
+{"prompt": "Explain the CAP theorem in distributed systems. What trade-offs must be made?", "max_tokens": 512, "category": "technical"}
+{"prompt": "Implement a simple LRU cache in Python with O(1) get and put operations.", "max_tokens": 512, "category": "coding"}
+{"prompt": "What is quantum computing and how does it differ from classical computing?", "max_tokens": 384, "category": "explanation"}
+{"prompt": "Write a regex pattern that validates email addresses and explain each part of the pattern.", "max_tokens": 256, "category": "coding"}
+{"prompt": "Describe the architecture of a microservices-based e-commerce platform.", "max_tokens": 768, "category": "technical"}
+{"prompt": "What are the SOLID principles in object-oriented programming? Give an example of each.", "max_tokens": 640, "category": "technical"}
+{"prompt": "Write a bash script that monitors CPU usage and sends an alert if it exceeds 90%.", "max_tokens": 256, "category": "coding"}
+{"prompt": "Explain how HTTPS works and why it's important for web security.", "max_tokens": 384, "category": "technical"}
+{"prompt": "What is the difference between horizontal and vertical scaling? When would you use each?", "max_tokens": 384, "category": "technical"}
+{"prompt": "Write a function in JavaScript that debounces another function with a configurable delay.", "max_tokens": 256, "category": "coding"}
+{"prompt": "Explain the concept of eventual consistency in distributed databases.", "max_tokens": 384, "category": "technical"}
+{"prompt": "What are the benefits and drawbacks of using containers like Docker for deployment?", "max_tokens": 512, "category": "technical"}
+{"prompt": "Write a Python decorator that caches function results with a TTL (time-to-live).", "max_tokens": 384, "category": "coding"}
+{"prompt": "Explain how garbage collection works in Java. Compare different GC algorithms.", "max_tokens": 512, "category": "technical"}
+{"prompt": "What is the difference between authentication and authorization? Give examples.", "max_tokens": 256, "category": "explanation"}
+{"prompt": "Write a React component that implements an infinite scroll list with virtualization.", "max_tokens": 512, "category": "coding"}
+{"prompt": "Explain the concept of database sharding and its trade-offs.", "max_tokens": 384, "category": "technical"}
+{"prompt": "What are WebSockets and how do they differ from HTTP requests?", "max_tokens": 384, "category": "technical"}
+{"prompt": "Write a Kubernetes deployment YAML for a web application with 3 replicas and a service.", "max_tokens": 384, "category": "coding"}
+{"prompt": "Explain the difference between synchronous and asynchronous programming with examples.", "max_tokens": 384, "category": "technical"}
+{"prompt": "What is a bloom filter and when would you use one?", "max_tokens": 256, "category": "technical"}
+{"prompt": "Write a unit test in pytest for a function that calculates compound interest.", "max_tokens": 256, "category": "coding"}
+{"prompt": "Explain the concept of immutability in functional programming and its benefits.", "max_tokens": 384, "category": "technical"}
+{"prompt": "What are the differences between SQL and NoSQL databases? When would you choose each?", "max_tokens": 512, "category": "technical"}
+{"prompt": "Write a Go function that safely handles concurrent map access.", "max_tokens": 256, "category": "coding"}
+{"prompt": "Explain how load balancing works and describe different load balancing algorithms.", "max_tokens": 512, "category": "technical"}
+{"prompt": "What is the difference between process and thread? How do they share resources?", "max_tokens": 384, "category": "technical"}
+{"prompt": "Write a class in TypeScript that implements the Observer design pattern.", "max_tokens": 384, "category": "coding"}
+{"prompt": "Explain how DNS resolution works when you type a URL in your browser.", "max_tokens": 384, "category": "technical"}
+{"prompt": "What are race conditions and how can you prevent them?", "max_tokens": 384, "category": "technical"}
+{"prompt": "Write a Dockerfile for a Python Flask application with multi-stage build.", "max_tokens": 256, "category": "coding"}
+{"prompt": "Explain the concept of backpressure in streaming systems.", "max_tokens": 256, "category": "technical"}
+{"prompt": "What is a message queue and when should you use one? Compare RabbitMQ and Kafka.", "max_tokens": 512, "category": "technical"}
+{"prompt": "Write a shell command pipeline that finds the 10 most common words in a log file.", "max_tokens": 128, "category": "coding"}
+{"prompt": "Explain the difference between stateless and stateful applications in cloud architecture.", "max_tokens": 384, "category": "technical"}
+{"prompt": "What is infrastructure as code? Explain its benefits and give examples of tools.", "max_tokens": 384, "category": "technical"}
+{"prompt": "Write a Python function using asyncio that fetches multiple URLs concurrently.", "max_tokens": 384, "category": "coding"}
+{"prompt": "Explain how OAuth 2.0 works with the authorization code flow.", "max_tokens": 512, "category": "technical"}
+{"prompt": "What is a circuit breaker pattern and when should you use it?", "max_tokens": 384, "category": "technical"}
+{"prompt": "Write a GitHub Actions workflow that runs tests and deploys to AWS on merge to main.", "max_tokens": 384, "category": "coding"}
+{"prompt": "Explain the concept of blue-green deployment and its benefits.", "max_tokens": 256, "category": "technical"}
+

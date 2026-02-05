@@ -1,0 +1,149 @@
+version: "3.8"
+
+services:
+  # =============================================================================
+  # BASELINE: Hugging Face Text Generation Inference (TGI)
+  # =============================================================================
+  tgi:
+    image: ghcr.io/huggingface/text-generation-inference:2.0.4
+    container_name: tgi-baseline
+    ports:
+      - "8080:80"
+    volumes:
+      - ${HF_CACHE_DIR:-./models}:/data
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+    command:
+      - --model-id=${MODEL_ID:-meta-llama/Llama-3.1-8B-Instruct}
+      - --max-concurrent-requests=128
+      - --max-input-tokens=4096
+      - --max-total-tokens=8192
+      - --max-batch-prefill-tokens=4096
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    restart: unless-stopped
+
+  # =============================================================================
+  # CHAMPION: vLLM with PagedAttention
+  # =============================================================================
+  vllm:
+    image: docker.io/vllm/vllm-openai:v0.6.4
+    container_name: vllm-champion
+    ports:
+      - "8000:8000"
+    volumes:
+      - ${HF_CACHE_DIR:-./models}:/root/.cache/huggingface
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+    command:
+      - --model=${MODEL_ID:-mistralai/Mistral-7B-Instruct-v0.3}
+      - --host=0.0.0.0
+      - --port=8000
+      - --api-key=${VLLM_API_KEY:-}
+      - --gpu-memory-utilization=0.90
+      - --max-model-len=8192
+      - --enable-chunked-prefill
+      - --disable-log-requests
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    restart: unless-stopped
+
+  # =============================================================================
+  # OBSERVABILITY: Prometheus
+  # =============================================================================
+  prometheus:
+    image: docker.io/prom/prometheus:v2.51.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro,z
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-lifecycle
+    restart: unless-stopped
+
+  # =============================================================================
+  # OBSERVABILITY: Grafana
+  # =============================================================================
+  grafana:
+    image: docker.io/grafana/grafana:10.4.1
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-benchmark123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/cto-metrics.json
+    volumes:
+      - ./configs/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro,z
+      - ./configs/grafana/dashboards:/var/lib/grafana/dashboards:ro,z
+      - ./configs/grafana/dashboard-provider.yml:/etc/grafana/provisioning/dashboards/provider.yml:ro,z
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # =============================================================================
+  # METRICS: Prometheus Pushgateway (for benchmark results)
+  # =============================================================================
+  pushgateway:
+    image: docker.io/prom/pushgateway:v1.7.0
+    container_name: pushgateway
+    ports:
+      - "9091:9091"
+    restart: unless-stopped
+
+  # =============================================================================
+  # GPU METRICS: NVIDIA DCGM Exporter
+  # =============================================================================
+  dcgm-exporter:
+    image: docker.io/nvidia/dcgm-exporter:3.3.5-3.4.0-ubuntu22.04
+    container_name: dcgm-exporter
+    ports:
+      - "9400:9400"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: inference-benchmark
+
