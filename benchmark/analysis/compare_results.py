@@ -234,32 +234,49 @@ def generate_summary(vllm_df: pd.DataFrame, tgi_df: pd.DataFrame):
 
 
 @click.command()
-@click.option("--vllm", "-v", multiple=True, help="vLLM result CSV files (supports glob patterns)")
-@click.option("--tgi", "-t", multiple=True, help="TGI result CSV files (supports glob patterns)")
+@click.option("--vllm", "-v", default="", help="vLLM result CSV files (comma-separated or glob pattern, e.g. 'vllm_*.csv' or 'vllm_c4.csv,vllm_c8.csv')")
+@click.option("--tgi", "-t", default="", help="TGI result CSV files (comma-separated or glob pattern, e.g. 'tgi_*.csv' or 'tgi_c4.csv,tgi_c8.csv')")
 @click.option("--input-dir", "-d", type=click.Path(exists=True), help="Directory containing result CSVs (auto-detect by filename)")
 @click.option("--output", "-o", help="Output combined CSV file (compatible with roi_calculator.py)")
 @click.option("--summary-only", is_flag=True, help="Only show executive summary")
-def compare(vllm: tuple, tgi: tuple, input_dir: Optional[str], output: Optional[str], summary_only: bool):
+def compare(vllm: str, tgi: str, input_dir: Optional[str], output: Optional[str], summary_only: bool):
     """Compare vLLM vs TGI benchmark results from separate runs.
     
     Examples:
     
-        # Specify files explicitly
-        python compare_results.py --vllm vllm_c4.csv vllm_c8.csv --tgi tgi_c4.csv tgi_c8.csv
-        
-        # Use glob patterns
+        # Specify files with glob pattern
         python compare_results.py --vllm "vllm_*.csv" --tgi "tgi_*.csv"
+        
+        # Specify files comma-separated
+        python compare_results.py --vllm vllm_c4.csv,vllm_c8.csv --tgi tgi_c4.csv,tgi_c8.csv
         
         # Auto-detect from directory
         python compare_results.py --input-dir ./results
         
         # Generate combined CSV for ROI calculator
         python compare_results.py -d ./results -o sweep_results.csv
+        
+        # Current directory auto-detect
+        python compare_results.py -d .
     """
     console.print(Panel("[bold]vLLM vs TGI Benchmark Comparison[/bold]", style="cyan"))
     
-    vllm_files = list(vllm)
-    tgi_files = list(tgi)
+    # Parse comma-separated file lists or glob patterns
+    vllm_files = []
+    tgi_files = []
+    
+    if vllm:
+        # Split by comma if present, otherwise treat as single pattern
+        if ',' in vllm:
+            vllm_files = [f.strip() for f in vllm.split(',') if f.strip()]
+        else:
+            vllm_files = [vllm]
+    
+    if tgi:
+        if ',' in tgi:
+            tgi_files = [f.strip() for f in tgi.split(',') if f.strip()]
+        else:
+            tgi_files = [tgi]
     
     # Auto-detect files from directory
     if input_dir:
@@ -284,9 +301,9 @@ def compare(vllm: tuple, tgi: tuple, input_dir: Optional[str], output: Optional[
         console.print("[red]Error: No TGI results loaded[/red]")
         raise SystemExit(1)
     
-    # Ensure engine column is set correctly
-    vllm_df['engine'] = 'vLLM'
-    tgi_df['engine'] = 'TGI'
+    # Ensure engine column is set correctly (lowercase to match roi_calculator.py)
+    vllm_df['engine'] = 'vllm'
+    tgi_df['engine'] = 'tgi'
     
     console.print(f"\n[cyan]vLLM: {len(vllm_df)} result(s) at concurrency levels {sorted(vllm_df['concurrency'].unique())}[/cyan]")
     console.print(f"[cyan]TGI: {len(tgi_df)} result(s) at concurrency levels {sorted(tgi_df['concurrency'].unique())}[/cyan]")

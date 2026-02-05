@@ -133,7 +133,7 @@ Edit `.env`:
 HF_TOKEN=hf_your_token_here
 MODEL_ID=mistralai/Mistral-7B-Instruct-v0.3  # No approval needed
 # MODEL_ID=meta-llama/Llama-3.1-8B-Instruct  # Requires HF approval first
-GPU_COST_PER_HOUR=0.80  # L4 pricing
+GPU_COST_PER_HOUR=1.70  # AWS g6e.xlarge (L40S) pricing
 ```
 
 ### 2. Start the Stack
@@ -260,9 +260,23 @@ Based on benchmarks with NVIDIA L4 GPU (22GB VRAM):
 - Longer output sequences (256+ tokens)
 - Memory-constrained scenarios
 
-### Expected Results (L40S/A100 + Llama-3.1-8B)
+### Expected Results (AWS g6e.xlarge + L40S + Mistral-7B)
 
-At higher concurrency with larger GPUs:
+Based on benchmarks with AWS g6e.xlarge (NVIDIA L40S, 46GB VRAM):
+
+| Metric | vLLM | TGI | vLLM Advantage |
+|--------|------|-----|----------------|
+| Throughput @ C=4 | 167 tok/s | 138 tok/s | **1.21x** |
+| Throughput @ C=8 | 325 tok/s | 292 tok/s | **1.11x** |
+| TTFT P50 @ C=8 | 49ms | 51ms | Similar |
+| TTFT P99 @ C=8 | **60ms** | 329ms | **5.5x faster** |
+| TPOT P50 @ C=8 | **22ms** | 25ms | **1.13x faster** |
+
+**Key Insight**: vLLM shows the biggest advantage in **tail latency (P99)** - critical for consistent user experience. The TTFT P99 being 5x faster means fewer users experience slow initial responses under load.
+
+### Expected Results at Higher Concurrency (L40S/A100)
+
+At higher concurrency levels (C=32+) with larger batch sizes:
 
 | Metric | vLLM | TGI | vLLM Advantage |
 |--------|------|-----|----------------|
@@ -373,30 +387,52 @@ python3 load_generator.py run --vllm-only -c 8 -d 30 -o vllm_c8.csv
 python3 load_generator.py run --tgi-only -c 4 -d 30 -o tgi_c4.csv
 python3 load_generator.py run --tgi-only -c 8 -d 30 -o tgi_c8.csv
 
-# Compare results and generate combined CSV
+# Compare results and generate combined CSV (comma-separated)
 python3 analysis/compare_results.py \
-  --vllm vllm_c4.csv vllm_c8.csv \
-  --tgi tgi_c4.csv tgi_c8.csv \
+  --vllm vllm_c4.csv,vllm_c8.csv \
+  --tgi tgi_c4.csv,tgi_c8.csv \
   -o sweep_results.csv
 
-# Or auto-detect from directory
+# Or use glob patterns
+python3 analysis/compare_results.py --vllm "vllm_*.csv" --tgi "tgi_*.csv" -o sweep_results.csv
+
+# Or auto-detect from directory (easiest)
 python3 analysis/compare_results.py --input-dir . -o sweep_results.csv
 ```
 
 ### ROI Calculator
 
 ```bash
-# Basic analysis
+# Basic analysis (uses default L40S pricing)
 python3 analysis/roi_calculator.py --input sweep_results.csv
 
-# With custom parameters
+# AWS g6e.xlarge with L40S (46GB VRAM) - ~$1.70/hour on-demand
 python3 analysis/roi_calculator.py \
   --input sweep_results.csv \
-  --gpu-cost 2.50 \
-  --gpu-name "A100-80GB" \
+  --gpu-cost 1.70 \
+  --gpu-name "L40S-46GB" \
+  --annual-tokens 1000000000 \
+  --output roi_report.csv
+
+# For higher volume workloads (10B tokens/year)
+python3 analysis/roi_calculator.py \
+  --input sweep_results.csv \
+  --gpu-cost 1.70 \
+  --gpu-name "L40S-46GB" \
   --annual-tokens 10000000000 \
   --output roi_report.csv
 ```
+
+**AWS GPU Instance Pricing Reference:**
+
+| Instance | GPU | VRAM | On-Demand ($/hr) |
+|----------|-----|------|------------------|
+| g6e.xlarge | 1x L40S | 46GB | ~$1.70 |
+| g6e.2xlarge | 1x L40S | 46GB | ~$2.04 |
+| g5.xlarge | 1x A10G | 24GB | ~$1.00 |
+| p4d.24xlarge | 8x A100 | 640GB | ~$32.77 |
+
+> **Note**: Prices vary by region. Check [AWS EC2 Pricing](https://aws.amazon.com/ec2/pricing/) for current rates.
 
 ## Interpreting Results
 
