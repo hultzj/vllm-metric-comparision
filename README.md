@@ -59,9 +59,13 @@ sudo dnf install -y podman python3 python3-pip
 # Install podman-compose (Python-based)
 sudo pip3 install podman-compose
 
+# Create symlink so sudo can find podman-compose
+# (pip installs to /usr/local/bin which isn't in sudo's PATH)
+sudo ln -sf /usr/local/bin/podman-compose /usr/bin/podman-compose
+
 # Verify installation
 podman --version
-podman-compose --version
+sudo podman-compose --version
 ```
 
 ### Step 2: Configure Docker Hub Registry
@@ -81,8 +85,8 @@ RHEL 9 has excellent NVIDIA support with pre-built kernel modules:
 # Add NVIDIA CUDA repository
 sudo dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo
 
-# Install NVIDIA drivers
-sudo dnf install -y cuda-drivers
+# Install NVIDIA drivers (using modular streams - 'cuda-drivers' package doesn't work on RHEL 9)
+sudo dnf module install -y nvidia-driver:latest
 
 # Reboot to load the driver
 sudo reboot
@@ -108,8 +112,8 @@ sudo dnf install -y nvidia-container-toolkit
 # Configure for Podman (generates CDI specification)
 sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
 
-# Verify GPU access in containers
-podman run --rm --device nvidia.com/gpu=all docker.io/nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi
+# Verify GPU access in containers (use sudo for GPU access)
+sudo podman run --rm --device nvidia.com/gpu=all docker.io/nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi
 ```
 
 ## Quick Start
@@ -286,7 +290,8 @@ vllm/
 │   ├── datasets/
 │   │   └── prompts.jsonl        # Test prompts
 │   └── analysis/
-│       └── roi_calculator.py    # ROI analysis tool
+│       ├── roi_calculator.py    # ROI analysis tool
+│       └── compare_results.py   # Merge & compare separate runs (single GPU)
 └── README.md                    # This file
 ```
 
@@ -294,7 +299,12 @@ vllm/
 
 ### Podman Compose
 
+> **Note**: All `podman-compose` commands must be run from the project directory (where `podman-compose.yaml` is located), or use `-f /path/to/podman-compose.yaml`.
+
 ```bash
+# Change to project directory first
+cd /path/to/vllm
+
 # Start all services (use sudo for GPU access)
 sudo podman-compose up -d
 
@@ -305,7 +315,11 @@ sudo podman-compose down
 sudo podman logs vllm-champion
 sudo podman logs tgi-baseline
 
-# Stop/start individual containers
+# Stop/start individual services (by service name)
+sudo podman-compose stop vllm
+sudo podman-compose start tgi
+
+# Or stop/start by container name (works from anywhere)
 sudo podman stop vllm-champion
 sudo podman start tgi-baseline
 
@@ -345,6 +359,29 @@ python3 load_generator.py sweep -c 1,4,8,16,32 -d 30 -o sweep_results.csv
 | `--output` | `-o` | Output CSV filename |
 | `--vllm-only` | | Only benchmark vLLM |
 | `--tgi-only` | | Only benchmark TGI |
+
+### Compare Results (Single GPU)
+
+For single-GPU setups where you can only run one engine at a time, use the comparison script to merge and analyze separate benchmark runs:
+
+```bash
+# Run vLLM benchmarks (with vLLM running)
+python3 load_generator.py run --vllm-only -c 4 -d 30 -o vllm_c4.csv
+python3 load_generator.py run --vllm-only -c 8 -d 30 -o vllm_c8.csv
+
+# Switch to TGI (stop vLLM, start TGI), then run TGI benchmarks
+python3 load_generator.py run --tgi-only -c 4 -d 30 -o tgi_c4.csv
+python3 load_generator.py run --tgi-only -c 8 -d 30 -o tgi_c8.csv
+
+# Compare results and generate combined CSV
+python3 analysis/compare_results.py \
+  --vllm vllm_c4.csv vllm_c8.csv \
+  --tgi tgi_c4.csv tgi_c8.csv \
+  -o sweep_results.csv
+
+# Or auto-detect from directory
+python3 analysis/compare_results.py --input-dir . -o sweep_results.csv
+```
 
 ### ROI Calculator
 
@@ -430,15 +467,18 @@ cat /etc/cdi/nvidia.yaml | head -30
 ### RHEL 9: Driver Installation Issues
 
 ```bash
-# If cuda-drivers fails, check NVIDIA repo is enabled
+# Check available nvidia-driver module streams
+sudo dnf module list nvidia-driver
+
+# If installation fails, check NVIDIA repo is enabled
 sudo dnf repolist | grep cuda
 
 # Re-add the repo if needed
 sudo dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo
 
-# Clean cache and retry
+# Clean cache and retry with modular install
 sudo dnf clean all
-sudo dnf install -y cuda-drivers
+sudo dnf module install -y nvidia-driver:latest
 ```
 
 ### AWS/Cloud: Unregistered RHEL
@@ -451,7 +491,7 @@ If you see "Unable to read consumer identity" errors, the system isn't registere
 sudo dnf repolist
 
 # Verify NVIDIA repo is accessible
-sudo dnf list available cuda-drivers
+sudo dnf module list nvidia-driver
 ```
 
 ### Model Download Fails
